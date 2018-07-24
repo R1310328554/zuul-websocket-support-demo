@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>聊天页面</title>
+    <script type="text/javascript" src="jquery-3.1.1.js"></script>
+    <script type="text/javascript" src="sockjs.min.js"></script>
+    <script type="text/javascript" src="stomp.js"></script>
+</head>
+<body>
+<p>
+    <h1>聊天室</h1>
+</p>
+
+<button id="connect" value="connect">connect</button>
+<button id="subscribe" value="subscribeQueue">subscribeQueue</button>
+<button id="reverse" value="reverse">reverse</button>
+<button id="stop" value="stop connect">stop connect</button>
+<br/>
+
+<br/>
+<br/>
+<br/>
+<p>
+    <h2>1对1(点对点)发送消息</h2>
+</p>
+<form id="JanetForm">
+    <label>My Name</label>: <input id="username" value="u1"/><br/>
+    <label>Send  To</label>: <input id="toUsername" value="u2"/><br/>
+    <br/>
+    <textarea rows="4" cols="60" name="text"></textarea>
+    <input type="submit" value="send to queue"/>
+    <br/>
+    <br/>
+</form>
+
+<br/>
+<p>
+    <h2>1对多发送消息</h2>
+</p>
+<input id="topicName" value="/user/topic/t1"/><button id="subscribeTopic" value="subscribeTopic">subscribeTopic</button>
+<input id="topicMsg" value="hello topic abc"/><button id="sendToTopic" value="sendToTopic">send to topic</button>
+<br/>
+
+<script th:inline="javascript">
+    function getSessionId () {
+        return "fffffff-" + new Date().getTime()
+    }
+
+    $('#JanetForm').submit(function (e) {
+        e.preventDefault();
+        var text = $('#JanetForm').find('textarea[name="text"]').val();
+        sendSpittle(text);
+    });
+
+    var sock;
+    var stomp;
+    function connect() {
+
+//    连接endpoint为"/endpointChat"的节点
+//     var sock = new SockJS("/endpointChat");
+
+        sock = new SockJS('/epld-websocket', null, {
+            'protocols_whitelist': ['websocket']
+        });
+
+        sock.onopen = function () {
+            console.log("------连接成功------");
+        };
+        sock.onmessage = function (event) {
+            console.log('-------Received: ' + event.data);
+        };
+        sock.onclose = function (event) {
+            console.log('--------Info: connection closed.------');
+        };
+        //连接发生错误
+        sock.onerror = function () {
+            alert("连接错误", "网络超时或通讯地址错误.");
+            disconnect();
+        }
+
+        stomp = Stomp.over(sock);
+//    连接WebSocket服务端
+        var username = $('#username').val();
+        var uu = {token: username}
+        // 'guest','guest'
+        stomp.connect(uu,function (frame) {
+//        订阅/user/queue/notifications发送的消息，这里与在控制器的messagingTemplate.convertAndSendToUser中定义的订阅地址保持一致。
+//        这里多了一个/user，并且这个user是必须的，使用了/user才会发送消息到指定的用户
+            console.log("aaaaaaaaaa");
+            // stomp.subscribe("/user/"+  +"/queue/notifications",handleNotification);
+            subscribe();
+            subscribeTopic();
+        });
+    }
+
+
+    function subscribe( ) {
+        var username = $('#username').val();
+
+        var suffix = "/queue/notifications";
+        // suffix = ""
+        // stomp.subscribe("/user/"+ username + suffix,handleNotification);
+        stomp.subscribe("/user" + suffix,handleNotification);
+    }
+
+    function subscribeTopic( ) {
+        var topicName = $('#topicName').val();
+        // prefix = "/user/topic/"
+        stomp.subscribe(topicName, handleNotification2);
+    }
+
+    function handleNotification(message) {
+        // console.log(" handleNotification    queue ");
+        $('#output').append("<b>收到了queue消息:" + message.body + "</b><br/>")
+    }
+
+    function handleNotification2(message) {
+        // console.log(" handleNotification    topic ");
+        $('#output').append("<b>收到了topic消息:" + message.body + "</b><br/>")
+    }
+    function sendSpittle(text) {
+        var toUsername = $('#toUsername').val();
+//        表示向后端路径/chat发送消息请求，这个是在控制器中@MessageMapping中定义的。
+        var toUsername = $('#toUsername').val();
+        var data = {content:text, toUserId: toUsername}
+        stomp.send("/abc/chat",{},JSON.stringify(data));
+    }
+
+    function sendToTopic() {
+        var topicMsg = $('#topicMsg').val();
+        var topicName = $('#topicName').val();
+        var data = {content:topicMsg, topicName: topicName}
+        stomp.send("/abc/sendToTopic",{},JSON.stringify(data));
+    }
+
+    $('#stop').click(function () {
+        {sock.close()}
+    });
+    $('#subscribe').click( subscribe );
+    $('#connect').click( connect);
+    $('#subscribeTopic').click( subscribeTopic);
+    $('#sendToTopic').click( sendToTopic);
+
+    $('#reverse').click(function () {
+        var toUsername = $('#toUsername').val();
+        var username = $('#username').val();
+        $('#username').val(toUsername);
+        $('#toUsername').val(username);
+    });
+
+</script>
+<div id="output"></div>
+</body>
+</html>

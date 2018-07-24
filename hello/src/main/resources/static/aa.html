@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"></meta>
+    <title>test</title>
+
+    <script type="text/javascript" th:src="@{sock js.js}"></script>
+    <script type="text/javascript" th:src="@{jquery-1.4.4.js}"></script>
+    <script type="text/javascript" src="jquery-1.4.4.js"></script>
+</head>
+<body>
+
+
+<div id="msgcount"></div>
+
+aaaaaaa
+
+<input id="userId" />
+<button value="send" onclick="send()">send</button>
+<button value="send" onclick="audi()">audi</button>
+
+bbbbbbbbb
+
+
+<script>
+    var websocket;
+    var token = "5214f7ec-f7c7-4561-a50f-366704338d75";
+    var ipPort = "10.10.10.76.8089"
+    var ipPort = "10.0.20.93:8080"
+    ipPort = "localhost:7079"
+    // var ipPort = "10.10.10.76:5556/mq-service-lk"
+    // var ipPort = "10.10.10.76:5555/mq-service-lk"
+    if ('WebSocket' in window) {
+        console.log('WebSocket in window')
+        websocket = new WebSocket("ws://"+ ipPort +"/epld-websocket?token="+token);
+    } else if ('MozWebSocket' in window) {
+        alert(111)
+        websocket = new MozWebSocket("ws://"+ ipPort +"/epld-websocket");
+    } else {
+        alert(222)
+        websocket = new SockJS("http://"+ ipPort +"/sockjs/epld-websocket");
+    }
+    websocket.onopen = function (evnt) {
+        console.log('ws clint:open websocket')
+        //发送消息
+        var msg = 'userId=1';
+        console.log('ws clint:send msg:'+msg)
+        websocket.send(msg);
+    };
+    websocket.onmessage = function (evnt) {
+        console.log('ws client:get queueMessageEntity ' + evnt.data)
+        // alert(evnt.data);
+        // $("#msgcount").html("(<font color='red'>"+evnt.data+"</font>)")
+    };
+
+    websocket.onerror = function (evnt) {
+        console.log('ws client:error '+evnt)
+    };
+    websocket.onclose = function (evnt) {
+        console.log('ws clent:close ')
+    }
+
+    function audi() {
+        var userId = jQuery("#userId").val();
+        console.log("auddddddd?username="+ userId);
+        $.get(
+            "auditing?username="+ userId
+            , function (data) {
+                alert(data);
+            }
+        )
+        // $.ajax({
+        // })
+    }
+
+    function send() {
+        // ws.addEventListener()
+        var userId = $("#userId").val();
+
+        var ws;
+        if ('WebSocket' in window) {
+            ws = new WebSocket("ws://"+ ipPort +"/epld-websocket?userId="+userId);
+        } else if ('MozWebSocket' in window) {
+            ws = new MozWebSocket("ws://"+ ipPort +"/epld-websocket?userId=\"+userId");
+        } else {
+            ws = new SockJS("http://"+ ipPort +"/sockjs/epld-websocket?userId=\"+userId");
+        }
+        ws.onopen = function (evnt) {
+            var userId = $("#userId").val();
+            console.log('ws clint:open ws')
+            //发送消息
+            var msg = 'userId='+userId;
+            console.log('ws clint:send msg:'+msg)
+            ws.send(msg);
+        };
+        ws.onmessage = function (evnt) {
+            console.log('ws client:get queueMessageEntity ' + evnt.data)
+            // alert(evnt.data);
+            // $("#msgcount").html("(<font color='red'>"+evnt.data+"</font>)")
+        };
+
+        ws.onerror = function (evnt) {
+            console.log('ws client:error '+evnt)
+        };
+        ws.onclose = function (evnt) {
+            console.log('ws clent:close ')
+        }
+    }
+
+</script>
+</body>
+</html>

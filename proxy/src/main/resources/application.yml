@@ -1,0 +1,22 @@
+server:
+  port: 8080
+eureka:
+  client:
+    serviceUrl:
+      defaultZone:  http://localhost:7077/eureka
+
+zuul:
+   routes:
+    hello:
+      path: /**
+#      url: http://localhost:7079/
+      service-id:  hello
+
+   ws:
+      queues: queue
+      topics: topic
+      brokerages:
+        hello:
+          end-points: /epld-websocket
+          brokers:  /queue, /topic
+          destination-prefixes: /abc
